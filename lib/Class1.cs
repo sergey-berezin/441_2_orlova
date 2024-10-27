@@ -1,5 +1,7 @@
-﻿using System.Globalization;
+﻿using System.Drawing;
+using System.Globalization;
 using System.IO.Compression;
+using System.Runtime.Intrinsics.X86;
 
 namespace genetics;
 
@@ -14,18 +16,18 @@ public class Individual
         int n = gtx.Length;
         Genotype_X = new int[n];
         Genotype_Y = new int[n];
-        Side = s;
-        for (int i = 0; i < n; i++)
+        Side = new int[n];
+        Array.Copy(s, 0, Side, 0, n);
+        Parallel.For(1, n, (i, state) =>
         {
             Genotype_X[i] = gtx[i];
             Genotype_Y[i] = gty[i];
-        }
-        
+        });
+
         // считаем функцию выживаемости
         int bottom = 1000, left = 1000;
         int top = 0, right = 0;
         bool f, intersect = false;
-        n--;
         for (int i = 0; i < n; i++)
         {
             if(intersect) break;
@@ -172,8 +174,26 @@ public class Evolution
             gtx_2[i] = Population[ind1].Genotype_X[i];
             gty_2[i] = Population[ind1].Genotype_Y[i];
         }
-        Population.Add(new Individual(gtx_1, gty_1, Side));
-        Population.Add(new Individual(gtx_2, gty_2, Side));
+
+        int[] Side1, Side2;
+        Side1 = new int[n];
+        Side2 = new int[n];
+        Individual indiv1;
+        Individual indiv2;
+        indiv1 = null!;
+        indiv2 = null!;
+        Array.Copy(Side, 0, Side1, 0, n);
+        Array.Copy(Side, 0, Side2, 0, n);
+        // Создание новых индивидов идет параллельно
+        Task taskA = new Task(() => indiv1 = new Individual(gtx_1, gty_1, Side1));
+        Task taskB = new Task(() => indiv2 = new Individual(gtx_2, gty_2, Side2));
+        taskA.Start();
+        taskB.Start();
+        taskA.Wait();
+        taskB.Wait();
+        // Индивиды созданы, добавляяем в популяцию
+        Population.Add(indiv1);
+        Population.Add(indiv2);
     }
 
     // сортировка популяции и удаление лишних особей (всех кроме первых Population_numbers)
@@ -194,10 +214,8 @@ public class Evolution
         for(int ind = 0; ind < n; ind++)
         {
             Mutation(ind, 1);
-            Mutation(Population.Count - 1, 2);      // тут и далее мутации последней мутации
+            Mutation(Population.Count - 1, 2);
             Mutation(Population.Count - 1, 3);
-            Mutation(Population.Count - 1, 4);
-            Mutation(Population.Count - 1, 5);
             cross = rand.Next(n);                   // выбор пары для скрещивания
             if (ind != cross) Crossing(ind, cross);
             cross = rand.Next(n);
