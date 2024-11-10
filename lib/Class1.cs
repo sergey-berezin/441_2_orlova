@@ -178,22 +178,14 @@ public class Evolution
         int[] Side1, Side2;
         Side1 = new int[n];
         Side2 = new int[n];
-        Individual indiv1;
-        Individual indiv2;
-        indiv1 = null!;
-        indiv2 = null!;
         Array.Copy(Side, 0, Side1, 0, n);
         Array.Copy(Side, 0, Side2, 0, n);
         // Создание новых индивидов идет параллельно
-        Task taskA = new Task(() => indiv1 = new Individual(gtx_1, gty_1, Side1));
-        Task taskB = new Task(() => indiv2 = new Individual(gtx_2, gty_2, Side2));
-        taskA.Start();
-        taskB.Start();
-        taskA.Wait();
-        taskB.Wait();
+        Task<Individual> taskA = Task.Factory.StartNew(() => new Individual(gtx_1, gty_1, Side1));
+        Task<Individual> taskB = Task.Factory.StartNew(() => new Individual(gtx_2, gty_2, Side2));
         // Индивиды созданы, добавляяем в популяцию
-        Population.Add(indiv1);
-        Population.Add(indiv2);
+        Population.Add(taskA.Result);
+        Population.Add(taskB.Result);
     }
 
     // сортировка популяции и удаление лишних особей (всех кроме первых Population_numbers)
