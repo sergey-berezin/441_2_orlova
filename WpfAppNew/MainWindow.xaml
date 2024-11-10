@@ -21,8 +21,9 @@
         <TextBox Text="Количество квадратов со стороной 3:" Margin="10, 140, 0, 0" Width="220" Height="20" VerticalAlignment="Top" HorizontalAlignment="Left"/>
         <TextBox Name="box3" Text="{Binding Sq3}" HorizontalAlignment="Left" Margin="50,165,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Height="20"/>
         <TextBlock Name="ResultBlock" Margin="10, 200, 0, 0" Width="350" Height="150"  VerticalAlignment="Top" HorizontalAlignment="Left"/>
-        <Button  Click="Continue" Content="Continue" HorizontalAlignment="Left" Margin="130,200,0,0" Height="40" Width="100" Background="#FF00FFFF" />
-
+        <Button  Click="Run" Content="Run" HorizontalAlignment="Left" Margin="130,200,0,0" Height="40" Width="100" Background="#FF00FFFF" />
+        <Button  Click="StopRunning" Content="StopRunning" HorizontalAlignment="Left" Margin="130,320,0,0" Height="40" Width="100" Background="#FF00FFFF" />
+        
         <Canvas Name ="Nice"  Grid.Column="1">
         </Canvas>
     </Grid>
