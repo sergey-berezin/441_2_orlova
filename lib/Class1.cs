@@ -64,6 +64,30 @@ public class Evolution
     public int[] Side { get; set; }     // массив длин сторон квадратов
     public int iter_num = 0;            // номер итерации эволюции
     public int Population_numbers = 50; // будем поддерживать фиксированное число особей в популяции
+    public Evolution(int a, int b, int c, int iter_num_new, string gen_x_all, string gen_y_all)
+    {
+        Population = [];
+        iter_num = iter_num_new;
+
+        int n = a + b + c;
+        Side = new int[n];
+        for (int i = 0; i < a; i++)
+            Side[i] = 1;
+        for (int i = 0; i < b; i++)
+            Side[a + i] = 2;
+        for (int i = 0; i < c; i++)
+            Side[a + b + i] = 3;
+
+        string[] gen_x = gen_x_all.Split(' ');
+        string[] gen_y = gen_y_all.Split(' ');
+
+        for (int i = 0; i < gen_x.Length; i++)
+        {
+            Population.Add(new Individual(gen_x[i].Split(';').Select(x => int.Parse(x)).ToArray(),
+                                          gen_y[i].Split(';').Select(x => int.Parse(x)).ToArray(), Side));
+        }
+
+    }
     public Evolution(int a, int b, int c)
     {
         Population = [];
