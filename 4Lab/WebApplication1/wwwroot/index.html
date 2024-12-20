@@ -1,0 +1,266 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Evolution.com</title>
+    <style>
+        td {
+            padding: 5px;
+        }
+
+        button {
+            margin: 5px;
+            background-color: aqua;
+            border: 1px solid #000;
+        }
+        body {
+            display: flex;
+            height: 100vh; /* Занимает всю высоту экрана */
+        }
+
+        #leftPanel {
+            width: 40%; /* Левая половина */
+            box-sizing: border-box;
+            border-right: 1px solid #000; /* Разделительная линия */
+        }
+
+        #rightPanel {
+            width: 60%; /* Правая половина */
+            padding: 5px;
+            box-sizing: border-box;
+            overflow: hidden; /* Скрываем вылезшие за границы элементы */
+        }
+
+        #container {
+            position: relative;
+            width: 100%;
+            height: 100%; /* Высота области для квадратов */
+            border: 1px solid #000; /* Граница для области с квадратами */
+            overflow: hidden;
+        }
+
+        .square {
+            position: absolute;
+            background-color: aqua; /* Цвет квадрата */
+            border: 1px solid #000;
+        }
+
+    </style>
+</head>
+<body>
+    <div div id="leftPanel">
+        <h2>Эволюция квадратиков</h2>
+        <input type="hidden" id="iterNum" />
+        <input type="hidden" id="aNum" />
+        <input type="hidden" id="bNum" />
+        <input type="hidden" id="cNum" />
+        <p>
+            Параметры задачи:<br />
+            <input id="parameters" />
+        </p>
+        <p>
+            <button id="getParams">Новая популяция</button>
+        </p>
+        <p>
+            <button id="nextStep">Шаг эволюции</button>
+        </p>
+        <p>
+            <button id="startButton">Старт</button>
+            <button id="stopButton">Стоп</button>
+        </p>
+        <table>
+            <thead><tr><th></th><th></th></tr></thead>
+            <tbody>
+            </tbody>
+        </table>
+
+    </div>
+    <div id="rightPanel">
+        <div id="container"></div>
+    </div>
+
+    <script>
+        let curPopulation = [];
+        let intervalId;
+        const rows = document.querySelector("tbody");
+
+        // начальная популяция
+        async function getData(par) {
+            const response = await fetch(`/initial/${par}`, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const data = await response.json();
+                curPopulation = data.population;
+                document.getElementById("iterNum").value = data.iter_num;
+                document.getElementById("aNum").value = data.anum;
+                document.getElementById("bNum").value = data.bnum;
+                document.getElementById("cNum").value = data.cnum;
+
+                await clearTable();
+                myrow(data);
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+        }
+
+        // следующий шаг Эволюции
+        async function newStep(iterParam, aParam, bParam, cParam) {
+
+            const populationData = {
+                Population: curPopulation,
+                Iter_num: iterParam,
+                Anum: aParam,
+                Bnum: bParam,
+                Cnum: cParam
+            };
+
+            const response = await fetch("/next", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify(populationData)
+            });
+            if (response.ok === true) {
+                const data = await response.json();
+                document.getElementById("iterNum").value = data.iter_num;
+                curPopulation = data.population;
+
+                await clearTable();
+                myrow(data);
+            }
+            else {
+                const error = await response.json();
+                console.log(error.message);
+            }
+        }
+        function clearTable() {
+            rows.innerHTML = '';
+        }
+        function myrow(data) {
+
+            const tr1 = document.createElement("tr");
+            const textX = document.createElement("td");
+            textX.append("Координаты X: ");
+            tr1.append(textX);
+            const genotype_X_Td = document.createElement("td");
+            genotype_X_Td.append(data.population[0].genotype_X);
+            tr1.append(genotype_X_Td);
+            rows.append(tr1);
+
+            const tr2 = document.createElement("tr");
+            const textY = document.createElement("td");
+            textY.append("Координаты Y: ");
+            tr2.append(textY);
+            const genotype_Y_Td = document.createElement("td");
+            genotype_Y_Td.append(data.population[0].genotype_Y);
+            tr2.append(genotype_Y_Td);
+            rows.append(tr2);
+
+            const tr3 = document.createElement("tr");
+            const textS = document.createElement("td");
+            textS.append("Выживаемость: ");
+            tr3.append(textS);
+            const Surv = document.createElement("td");
+            Surv.append(data.population[0].survival);
+            tr3.append(Surv);
+            rows.append(tr3);
+
+            const tr4 = document.createElement("tr");
+            const textIt = document.createElement("td");
+            textIt.append("Номер итерации: ");
+            tr4.append(textIt);
+            const iter_Td = document.createElement("td");
+            iter_Td.append(data.iter_num);
+            tr4.append(iter_Td);
+            rows.append(tr4);
+        }
+        async function newStepAndDraw(iter, a, b, c) {
+            await newStep(iter, a, b, c);
+            drawSquares(curPopulation);
+        }
+
+        document.getElementById("getParams").addEventListener("click", async () => {
+
+            const par = document.getElementById("parameters").value;
+            await getData(par);
+            drawSquares(curPopulation);
+        });
+        document.getElementById("nextStep").addEventListener("click", async () => {
+
+            const a = document.getElementById("aNum").value;
+            const b = document.getElementById("bNum").value;
+            const c = document.getElementById("cNum").value;
+            const iter = document.getElementById("iterNum").value;
+            await newStep(iter, a, b, c);
+            drawSquares(curPopulation);
+        });
+        document.getElementById('startButton').addEventListener('click', () => {
+            intervalId = setInterval(() => {
+                newStepAndDraw(document.getElementById("iterNum").value,
+                    document.getElementById("aNum").value,
+                    document.getElementById("bNum").value,
+                    document.getElementById("cNum").value);
+            }, 500);
+        });
+
+        document.getElementById('stopButton').addEventListener('click', () => {
+            clearInterval(intervalId);
+        });
+
+
+        // drawing
+
+        const container = document.getElementById('container');
+
+        function drawSquares(popul) {
+            container.innerHTML = ''; // Очистка области перед рисованием
+            const n = popul[0].genotype_X.length;
+            const a = parseInt(document.getElementById("aNum").value);
+            const b = parseInt(document.getElementById("bNum").value);
+            const c = parseInt(document.getElementById("cNum").value);
+
+            for (let i = 0; i < a; i++) {
+                const square = document.createElement('div');
+                square.classList.add('square');
+                square.style.width = '20px';
+                square.style.height = '20px';
+                square.style.left = `${popul[0].genotype_X[i] * 20}px`;
+                square.style.top = `${popul[0].genotype_Y[i] * 20}px`;
+                container.appendChild(square);
+            }
+            for (let i = 0; i < b; i++) {
+                const square = document.createElement('div');
+                square.classList.add('square');
+                square.style.width = '40px';
+                square.style.height = '40px';
+                square.style.left = `${popul[0].genotype_X[a+i] * 20}px`;
+                square.style.top = `${popul[0].genotype_Y[a+i] * 20}px`;
+                container.appendChild(square);
+            }
+            for (let i = 0; i < c; i++) {
+                const square = document.createElement('div');
+                square.classList.add('square');
+                square.style.width = '60px';
+                square.style.height = '60px';
+                square.style.left = `${popul[0].genotype_X[a+b+i] * 20}px`;
+                square.style.top = `${popul[0].genotype_Y[a+b+i] * 20}px`;
+                container.appendChild(square);
+            }
+        }
+
+        function clearSquares() {
+            container.innerHTML = ''; // Очищаем контейнер
+        }
+
+        drawButton.addEventListener('click', () => {
+            clearSquares(); // Очищаем перед рисованием
+            drawSquares(curPopulation);
+        });
+
+        clearButton.addEventListener('click', clearSquares);
+    </script>
+</body>
+</html>
